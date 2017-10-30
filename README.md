@@ -17,7 +17,8 @@ The Implementation of this project has been broadly done in two parts:
 
 # PART I: Extraction of data with the help of Python and Twitter APIs.
 
--Tokenisation 
+- Tokenisation 
+
 After the authentication of the Twitter Application is done, the following python scripts are
 run to extract data using Twitter APIs. The following are the different ways in which we can
 interact with the twitter APIs to extract data:
