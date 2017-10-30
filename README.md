@@ -13,7 +13,7 @@ winner title. This project is yet to be extended to achieve this goal. but compl
 
 The Implementation of this project has been broadly done in two parts:
 - Extraction of data with the help of Python
--visualization of extracted data using R-studio.
+- visualization of extracted data using R-studio.
 
 # PART I: Extraction of data with the help of Python and Twitter APIs.
 
