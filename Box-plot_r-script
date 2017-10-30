@@ -1,0 +1,90 @@
+mumbai_tweets = searchTwitter("Mumbai Indians+@mipaltan", n=200, lang="en")
+kolkata_tweets = searchTwitter("Kolkata Knight Riders+@KKRiders", n=200, lang="en")
+ 
+kolkata_tweets_df = do.call("rbind", lapply(kolkata_tweets, as.data.frame))
+kolkata_tweets_df = subset(kolkata_tweets_df, select = c(text))
+ 
+mumbai_tweets_df = do.call("rbind", lapply(mumbai_tweets, as.data.frame))
+mumbai_tweets_df = subset(mumbai_tweets_df, select = c(text))
+
+# Removing blank spaces, punctuation, links, extra spaces, special characters and other unwanted things.
+mumbai_tweets$text = gsub("[:blank:]", "", mumbai_tweets$text)
+mumbai_tweets$text = gsub("[[:punct:]]", "", mumbai_tweets$text)
+mumbai_tweets$text = gsub("[:cntrl:]", "", mumbai_tweets$text)
+mumbai_tweets$text = gsub("[[:digit:]]", "", mumbai_tweets$text)
+mumbai_tweets$text = gsub("[:blank:]", "", mumbai_tweets$text)
+mumbai_tweets$text = gsub("(RT|via)((?:\\b\\W*@\\w+)+)", " ",  mumbai_tweets$text)
+mumbai_tweets$text = gsub("@\\w+", "", mumbai_tweets$text)
+mumbai_tweets$text = gsub("http\\w+", "", mumbai_tweets$text)
+
+# Removing blank spaces, punctuation, links, extra spaces, special characters and other unwanted things.
+kolkata_tweets$text = gsub("[:blank:]", "", kolkata_tweets$text)
+kolkata_tweets$text = gsub("[[:punct:]]", "", kolkata_tweets$text)
+kolkata_tweets$text = gsub("[:cntrl:]", "", kolkata_tweets$text)
+kolkata_tweets$text = gsub("[[:digit:]]", "", kolkata_tweets$text)
+kolkata_tweets$text = gsub("[:blank:]", "", kolkata_tweets$text)
+kolkata_tweets$text = gsub("(RT|via)((?:\\b\\W*@\\w+)+)", " ",  kolkata_tweets$text)
+kolkata_tweets$text = gsub("@\\w+", "", kolkata_tweets$text)
+kolkata_tweets$text = gsub("http\\w+", "", kolkata_tweets$text)
+
+mumbai_tweets["DuplicateFlag"] = duplicated(mumbai_tweets$text)
+mumbai_tweets = subset(mumbai_tweets, mumbai_tweets$DuplicateFlag=="FALSE")
+mumbai_tweets = subset(mumbai_tweets, select = -c(DuplicateFlag))
+
+kolkata_tweets["DuplicateFlag"] = duplicated(kolkata_tweets$text)
+kolkata_tweets = subset(kolkata_tweets, kolkata_tweets$DuplicateFlag=="FALSE")
+kolkata_tweets = subset(kolkata_tweets, select = -c(DuplicateFlag))
+
+# Creating the request body for Text Analytics API
+mumbai_tweets_df["language"] = "en"
+mumbai_tweets_df["id"] = seq.int(nrow(mumbai_tweets_df))
+request_body_mumbai = mumbai_tweets_df[c(2,3,1)]
+ 
+# Converting tweets dataframe into JSON
+request_body_json_mumbai = toJSON(list(documents = request_body_mumbai))
+ 
+result_mumbai = POST("https://westus.api.cognitive.microsoft.com/text/analytics/v2.0/sentiment",
+body = request_body_json_mumbai,
+add_headers(.headers = c("Content-Type"="application/json","Ocp-Apim-Subscription-Key"="my-Subscription-Key")))
+ 
+Output_mumbai = content(result_mumbai)
+ 
+score_output_mumbai = data.frame(matrix(unlist(Output_mumbai), nrow=100, byrow=T))
+score_output_mumbai$X1 =  as.numeric(as.character(score_output_mumbai$X1))
+score_output_mumbai$X1 = as.numeric(as.character(score_output_mumbai$X1)) *10
+ 
+score_output_mumbai["Team"] = "mumbai"
+
+# Creating the request body for Text Analytics API
+kolkata_tweets_df["language"] = "en"
+kolkata_tweets_df["id"] = seq.int(nrow(kolkata_tweets_df))
+request_body_kolkata = kolkata_tweets_df[c(2,3,1)]
+ 
+# Converting tweets dataframe into JSON
+request_body_json_kolkata = toJSON(list(documents = request_body_kolkata))
+ 
+result_kolkata = POST("https://westus.api.cognitive.microsoft.com/text/analytics/v2.0/sentiment",
+body = request_body_json_kolkata,
+add_headers(.headers = c("Content-Type"="application/json","Ocp-Apim-Subscription-Key"="my-Subscription-Key")))
+ 
+Output_kolkata = content(result_kolkata)
+ 
+score_output_kolkata = data.frame(matrix(unlist(Output_kolkata), nrow=100, byrow=T))
+score_output_kolkata$X1 =  as.numeric(as.character(score_output_kolkata$X1))
+score_output_kolkata$X1 = as.numeric(as.character(score_output_kolkata$X1)) *10
+ 
+score_output_kolkata["Team"] = "kolkata"
+
+final_score = rbind(score_output_mumbai,score_output_kolkata)
+ 
+library(ggplot2)
+ 
+cols = c("#7CAE00", "#00BFC4")
+names(cols) = c("mumbai")
+ 
+# boxplot
+ggplot(final_score, aes(x=final_score$Team, y=X1, group=final_score$Team)) +
+geom_boxplot(aes(fill=final_score$Team)) +
+scale_fill_manual(values=cols) +
+geom_jitter(colour="gray40",
+position=position_jitter(width=0.5), alpha=0.3)
